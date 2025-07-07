@@ -182,18 +182,22 @@ if [[ ! -z "$CONFIG_CONTAINER_NAME_SUFFIX" ]] ; then
 fi
 CONTAINER_NAME="$BASE_NAME-container"
 
-# Remove any exited containers.
-if [ "$(docker ps -a --quiet --filter status=exited --filter name=$CONTAINER_NAME)" ]; then
-    docker rm $CONTAINER_NAME > /dev/null
-fi
-
-# Re-use existing container.
-if [ "$(docker ps -a --quiet --filter status=running --filter name=$CONTAINER_NAME)" ]; then
-    print_info "Attaching to running container: $CONTAINER_NAME"
-    ISAAC_ROS_WS=$(docker exec $CONTAINER_NAME printenv ISAAC_ROS_WS)
-    print_info "Docker workspace: $ISAAC_ROS_WS"
-    docker exec -i -t -u admin --workdir $ISAAC_ROS_WS $CONTAINER_NAME /bin/bash $@
-    exit 0
+# Re-use existing container (running or exited).
+if [ "$(docker ps -a --quiet --filter name=$CONTAINER_NAME)" ]; then
+    if [ "$(docker ps --quiet --filter status=running --filter name=$CONTAINER_NAME)" ]; then
+        print_info "Attaching to running container: $CONTAINER_NAME"
+        ISAAC_ROS_WS=$(docker exec $CONTAINER_NAME printenv ISAAC_ROS_WS)
+        print_info "Docker workspace: $ISAAC_ROS_WS"
+        docker exec -i -t -u admin --workdir $ISAAC_ROS_WS $CONTAINER_NAME /bin/bash $@
+        exit 0
+    else
+        print_info "Restarting exited container: $CONTAINER_NAME"
+        docker start $CONTAINER_NAME > /dev/null
+        ISAAC_ROS_WS=$(docker exec $CONTAINER_NAME printenv ISAAC_ROS_WS)
+        print_info "Docker workspace: $ISAAC_ROS_WS"
+        docker exec -i -t -u admin --workdir $ISAAC_ROS_WS $CONTAINER_NAME /bin/bash $@
+        exit 0
+    fi
 fi
 
 # Summarize launch
@@ -280,7 +284,7 @@ print_info "Running $CONTAINER_NAME"
 if [[ $VERBOSE -eq 1 ]]; then
     set -x
 fi
-docker run -it --rm \
+docker run -it \
     --privileged \
     --network host \
     --ipc=host \
