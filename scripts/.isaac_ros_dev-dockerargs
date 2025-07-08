@@ -1,0 +1,1 @@
+-v /etc/nova/:/etc/nova/

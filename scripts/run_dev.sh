@@ -251,7 +251,7 @@ if [[ $PLATFORM == "aarch64" ]]; then
     DOCKER_ARGS+=("-v /usr/src/jetson_multimedia_api:/usr/src/jetson_multimedia_api")
     DOCKER_ARGS+=("--pid=host")
     DOCKER_ARGS+=("-v /usr/share/vpi3:/usr/share/vpi3")
-    DOCKER_ARGS+=("-v /dev/input:/dev/input")
+    DOCKER_ARGS+=("-v /dev:/dev")
 
     # If jtop present, give the container access
     if [[ $(getent group jtop) ]]; then
